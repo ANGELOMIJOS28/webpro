@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 // Backend URL
-const API_URL = "https://final-web-backend.onrender.com/todos";
+const API_URL = "https://backend-2-1zxd.onrender.com";
 
 interface Todo {
   id: number;
@@ -67,7 +67,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>Professional To-Do App</h1>
+      <h1>TaskHub</h1>
 
       <div className="input-box">
         <input
@@ -99,6 +99,7 @@ function App() {
 }
 
 export default App;
+
 
 // import './App.css'
 
