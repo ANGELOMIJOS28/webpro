@@ -1,0 +1,71 @@
+/* styles.css */
+body {
+  background-color: #0f0f0f; /* dark background */
+  font-family: 'Arial', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #fff;
+}
+
+.container {
+  text-align: center;
+  padding: 50px;
+  border: 2px solid #0ff; /* neon border */
+  border-radius: 15px;
+  box-shadow: 0 0 20px #0ff, 0 0 40px #0ff, 0 0 60px #0ff;
+}
+
+h1 {
+  font-size: 3rem;
+  color: #0ff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff;
+}
+
+input {
+  padding: 10px;
+  margin: 10px 0;
+  width: 80%;
+  border: 2px solid #0ff;
+  border-radius: 10px;
+  background: transparent;
+  color: #0ff;
+  font-size: 1rem;
+  box-shadow: 0 0 5px #0ff;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+}
+
+button {
+  padding: 10px 30px;
+  margin-top: 15px;
+  font-size: 1rem;
+  color: #0ff;
+  background: transparent;
+  border: 2px solid #0ff;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 0 5px #0ff, 0 0 15px #0ff;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #0ff;
+  color: #000;
+  box-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+}
+
+
+@keyframes neonPulse {
+  0%, 100% { text-shadow: 0 0 5px #0ff, 0 0 10px #0ff; }
+  50% { text-shadow: 0 0 20px #0ff, 0 0 40px #0ff; }
+}
+
+h1 {
+  animation: neonPulse 1.5s infinite;
+}
+
