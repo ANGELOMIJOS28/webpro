@@ -17,7 +17,7 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // Load todos
+  // Load todos from backend
   const loadTodos = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -27,26 +27,64 @@ function App() {
     }
   };
 
-  // Add or update todo
+  // Add or Update Todo – Optimistic UI
   const addTodo = async () => {
     if (!task.trim()) return;
 
-    try {
-      if (editId) {
-        await axios.put(`${API_URL}/${editId}`, { title: task, task, status: "pending" });
-        setEditId(null);
-      } else {
-        await axios.post(API_URL, { title: task, task });
-      }
+    const value = task; // store real task value before clearing
+
+    if (editId) {
+      // ---------- INSTANT UPDATE ----------
+      setTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === editId ? { ...todo, task: value, title: value } : todo
+        )
+      );
+
       setTask("");
-      loadTodos();
+      setEditId(null);
+
+      // ---------- SYNC TO BACKEND ----------
+      try {
+        await axios.put(`${API_URL}/${editId}`, {
+          title: value,
+          task: value,
+          status: "pending",
+        });
+        loadTodos();
+      } catch (err) {
+        console.error("Update failed:", err);
+      }
+
+      return;
+    }
+
+    // ---------- ADD MODE ----------
+    const tempTodo: Todo = {
+      id: Date.now(), // temporary ID for instant UI
+      title: value,
+      task: value,
+      status: "pending",
+    };
+
+    // Optimistic UI: show immediately
+    setTodos((prev) => [...prev, tempTodo]);
+    setTask("");
+
+    // Sync with backend
+    try {
+      await axios.post(API_URL, { title: value, task: value });
+      loadTodos(); // refresh real data
     } catch (err) {
-      console.error("Error adding/updating todo:", err);
+      console.error("Error adding todo:", err);
     }
   };
 
-  // Delete todo
+  // Delete Todo – Optimistic
   const deleteTodo = async (id: number) => {
+    // Instant UI delete
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+
     try {
       await axios.delete(`${API_URL}/${id}`);
       loadTodos();
@@ -55,7 +93,7 @@ function App() {
     }
   };
 
-  // Start editing
+  // Start Editing
   const startEdit = (todo: Todo) => {
     setTask(todo.task);
     setEditId(todo.id);
@@ -88,8 +126,12 @@ function App() {
           <li key={todo.id}>
             <span>{todo.task}</span>
             <div className="actions">
-              <button className="edit" onClick={() => startEdit(todo)}>Edit</button>
-              <button className="delete" onClick={() => deleteTodo(todo.id)}>Delete</button>
+              <button className="edit" onClick={() => startEdit(todo)}>
+                Edit
+              </button>
+              <button className="delete" onClick={() => deleteTodo(todo.id)}>
+                Delete
+              </button>
             </div>
           </li>
         ))}
@@ -99,6 +141,7 @@ function App() {
 }
 
 export default App;
+
 
 
 // import './App.css'
