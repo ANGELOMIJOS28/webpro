@@ -1,147 +1,205 @@
-/* GLOBAL */
+/* ============= GLOBAL BACKGROUND ============= */
+
 body {
   margin: 0;
-  padding: 0;
   font-family: "Poppins", sans-serif;
-  background: linear-gradient(135deg, #0f0f0f, #1a1a1a, #252525);
-  color: #ffffff;
-  min-height: 100vh;
+  background: radial-gradient(circle at top, #071122, #000814 70%);
+  background-attachment: fixed;
+  color: #e6e6e6;
   display: flex;
   justify-content: center;
-  align-items: center;
+  padding: 25px;
+  overflow-x: hidden;
 }
 
-/* MAIN CONTAINER */
+/* CYBER GRID EFFECT */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(#0ff3, transparent 1px),
+                    linear-gradient(90deg, #0ff3, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+/* ============= CONTAINER ============= */
+
 .container {
-  width: 450px;
+  width: 100%;
+  max-width: 550px;
+  padding: 25px;
+  border-radius: 18px;
+
   background: rgba(255, 255, 255, 0.05);
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 0 25px rgba(0, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  animation: fadeIn 0.8s ease-in-out;
+  backdrop-filter: blur(12px);
+
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 25px #00eaff55;
+
+  animation: fadeIn 0.6s ease-out;
 }
 
-/* TITLE */
+/* Fade animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============= TITLE ============= */
+
 h1 {
   text-align: center;
-  font-weight: 600;
   margin-bottom: 25px;
   color: #00eaff;
-  text-shadow: 0 0 10px #00eaff;
+  font-size: 30px;
+
+  text-shadow: 0 0 14px #00eaff, 0 0 30px #00eaffaa;
+  animation: glowPulse 2s infinite alternate;
 }
 
-/* INPUT AREA */
+/* Title glow animation */
+@keyframes glowPulse {
+  from { text-shadow: 0 0 10px #00eaff; }
+  to { text-shadow: 0 0 25px #00eaff; }
+}
+
+/* ============= INPUT BOX ============= */
+
 .input-box {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .input-box input {
   flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-  color: #00eaff;
-  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.6);
+
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+
   outline: none;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  box-shadow: inset 0 0 15px #00eaff55;
   transition: 0.3s ease;
 }
 
 .input-box input:focus {
-  border-color: #00eaff;
-  box-shadow: 0 0 15px #00eaff;
+  box-shadow: 0 0 14px #00eaff, inset 0 0 18px #00eaff66;
+  transform: scale(1.02);
 }
 
-/* BUTTONS */
-.input-box button {
-  padding: 12px 18px;
-  background: #00eaff;
-  color: #000;
-  font-weight: 600;
+/* ============= MAIN BUTTON STYLING ============= */
+
+button {
+  padding: 14px 20px;
+  border-radius: 10px;
   border: none;
-  border-radius: 8px;
+  font-weight: bold;
   cursor: pointer;
-  transition: 0.3s;
+
+  background: linear-gradient(90deg, #ff00d4, #ff0084);
+  color: white;
+
+  box-shadow: 0 0 15px #ff00d4aa;
+  transition: 0.25s ease;
 }
 
-.input-box button:disabled {
+button:hover {
+  box-shadow: 0 0 25px #ff00d4cc;
+  transform: scale(1.07);
+}
+
+button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.input-box button:hover:not(:disabled) {
-  box-shadow: 0 0 18px #00eaff;
-}
+/* ============= TASK LIST ============= */
 
-/* TODO LIST */
 ul {
   list-style: none;
   padding: 0;
+  margin-top: 10px;
 }
 
 li {
-  background: rgba(255, 255, 255, 0.07);
-  padding: 14px;
-  margin-bottom: 10px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 16px 16px;
+  margin-bottom: 14px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  animation: slideUp 0.4s ease;
-  border-left: 4px solid #00eaff;
+
+  box-shadow: 0 0 15px #00eaff55;
+  animation: slideIn 0.3s ease-out;
 }
 
-/* TEXT */
-li span {
-  font-size: 15px;
+/* Slide animation for each task */
+@keyframes slideIn {
+  from { transform: translateX(-15px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
-/* ACTION BUTTONS */
+/* ============= BUTTONS INSIDE TASKS ============= */
+
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
-.actions .edit,
-.actions .delete {
-  border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: 0.3s;
+.edit {
+  background: linear-gradient(90deg, #00eaff, #00aaff);
+  box-shadow: 0 0 15px #00eaffaa;
 }
 
-.actions .edit {
-  background: #00eaff;
-  color: #000;
+.delete {
+  background: linear-gradient(90deg, #ff003c, #ff005c);
+  box-shadow: 0 0 15px #ff003caa;
 }
 
-.actions .edit:hover {
-  box-shadow: 0 0 12px #00eaff;
+/* Hover pulse */
+.actions button:hover {
+  animation: pulse 0.3s linear;
 }
 
-.actions .delete {
-  background: #ff4f4f;
-  color: #fff;
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.11); }
+  100% { transform: scale(1); }
 }
 
-.actions .delete:hover {
-  box-shadow: 0 0 12px #ff4f4f;
+/* ============= RESPONSIVE ============= */
+
+@media (max-width: 480px) {
+  .container {
+    padding: 20px;
+  }
+
+  .input-box {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions button {
+    width: 100%;
+  }
 }
 
-/* ANIMATIONS */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}

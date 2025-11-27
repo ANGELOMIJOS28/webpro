@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 // Backend URL
-const API_URL = "https://backend-5-5sg4.onrender.com/todos";
+const API_URL = "";
 
 interface Todo {
   id: number;
@@ -17,7 +17,7 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // Load todos from backend
+  // Load todos
   const loadTodos = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -27,59 +27,26 @@ function App() {
     }
   };
 
-  // Add or Update Todo
+  // Add or update todo
   const addTodo = async () => {
     if (!task.trim()) return;
-    const value = task;
-
-    if (editId !== null) {
-      // ---------- UPDATE ----------
-      setTodos((prev) =>
-        prev.map((todo) =>
-          todo.id === editId ? { ...todo, task: value, title: value } : todo
-        )
-      );
-
-      setTask("");
-      setEditId(null);
-
-      try {
-        await axios.put(`${API_URL}/${editId}`, {
-          title: value,
-          task: value,
-          status: "pending",
-        });
-        loadTodos();
-      } catch (err) {
-        console.error("Update failed:", err);
-      }
-
-      return;
-    }
-
-    // ---------- ADD ----------
-    const tempTodo: Todo = {
-      id: Date.now(), // temporary ID
-      title: value,
-      task: value,
-      status: "pending",
-    };
-
-    setTodos((prev) => [...prev, tempTodo]);
-    setTask("");
 
     try {
-      await axios.post(API_URL, { title: value, task: value });
+      if (editId) {
+        await axios.put(`${API_URL}/${editId}`, { title: task, task, status: "pending" });
+        setEditId(null);
+      } else {
+        await axios.post(API_URL, { title: task, task });
+      }
+      setTask("");
       loadTodos();
     } catch (err) {
-      console.error("Error adding todo:", err);
+      console.error("Error adding/updating todo:", err);
     }
   };
 
-  // Delete Todo
+  // Delete todo
   const deleteTodo = async (id: number) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-
     try {
       await axios.delete(`${API_URL}/${id}`);
       loadTodos();
@@ -100,7 +67,7 @@ function App() {
 
   return (
     <div className="container">
-      <h1>TaskHub</h1>
+      <h1>Taskhub</h1>
 
       <div className="input-box">
         <input
@@ -110,7 +77,7 @@ function App() {
           onChange={(e) => setTask(e.target.value)}
         />
         <button onClick={addTodo} disabled={!task.trim()}>
-          {editId !== null ? "Update" : "Add"}
+          {editId ? "Update" : "Add"}
         </button>
       </div>
 
@@ -121,12 +88,8 @@ function App() {
           <li key={todo.id}>
             <span>{todo.task}</span>
             <div className="actions">
-              <button className="edit" onClick={() => startEdit(todo)}>
-                Edit
-              </button>
-              <button className="delete" onClick={() => deleteTodo(todo.id)}>
-                Delete
-              </button>
+              <button className="edit" onClick={() => startEdit(todo)}>Edit</button>
+              <button className="delete" onClick={() => deleteTodo(todo.id)}>Delete</button>
             </div>
           </li>
         ))}
@@ -136,6 +99,13 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
+
+
 
 
 
