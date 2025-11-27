@@ -1,499 +1,226 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import "./App.css";
+import './App.css';
+const API = import.meta.env.VITE_API_URL;
+const formatDate = (dateString: string | Date): string => {
+  const date = new Date(dateString);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
-// Backend URL
-const API_URL = "https://backend1-1-a8yk.onrender.com/todos";
+const today = formatDate(new Date());
 
-interface Todo {
+type Task = {
   id: number;
   title: string;
-  task: string;
-  status: string;
-}
+  date: string;
+  priority: "low" | "medium" | "high";
+  completed: boolean;
+};
 
-function App() {
-  const [task, setTask] = useState("");
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [editId, setEditId] = useState<number | null>(null);
-
-  // Load todos
-  const loadTodos = async () => {
-    try {
-      const res = await axios.get(API_URL);
-      setTodos(res.data);
-    } catch (err) {
-      console.error("Error loading todos:", err);
-    }
-  };
-
-  // Add or update todo
-  const addTodo = async () => {
-    if (!task.trim()) return;
-
-    try {
-      if (editId) {
-        await axios.put(`${API_URL}/${editId}`, { title: task, task, status: "pending" });
-        setEditId(null);
-      } else {
-        await axios.post(API_URL, { title: task, task });
-      }
-      setTask("");
-      loadTodos();
-    } catch (err) {
-      console.error("Error adding/updating todo:", err);
-    }
-  };
-
-  // Delete todo
-  const deleteTodo = async (id: number) => {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      loadTodos();
-    } catch (err) {
-      console.error("Error deleting todo:", err);
-    }
-  };
-
-  // Start editing
-  const startEdit = (todo: Todo) => {
-    setTask(todo.task);
-    setEditId(todo.id);
-  };
+export default function App() {
+  const [activeTab, setActiveTab] = useState<"today" | "pending" | "overdue">("today");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    loadTodos();
+    axios.get(`${import.meta.env.VITE_API_URL}/tasks`)
+      .then(res => {
+        const formattedTasks = res.data.map((t: any) => ({
+          ...t,
+          date: formatDate(t.date),
+          completed: Boolean(t.completed)
+        }));
+        setTasks(formattedTasks);
+      })
+      .catch(err => console.log(err));
   }, []);
 
-  return (
-    <div className="container">
-      <h1>Taskhub</h1>
+  const priorityColor = {
+    high: "#e74c3c",
+    medium: "#f39c12",
+    low: "#2ecc71",
+  };
 
-      <div className="input-box">
-        <input
-          type="text"
-          placeholder="Enter a task..."
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-        />
-        <button onClick={addTodo} disabled={!task.trim()}>
-          {editId ? "Update" : "Add"}
-        </button>
+ const toggleComplete = (id: number) => {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+
+  axios.put(`${API}/tasks/${id}`, { ...task, completed: !task.completed })
+    .then(() => setTasks(
+      tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+    ));
+};
+
+const deleteTask = (id: number) => {
+  axios.delete(`${API}/tasks/${id}`)
+    .then(() => setTasks(tasks.filter(t => t.id !== id)));
+};
+
+const updateTaskTitle = (id: number, newTitle: string) => {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+
+  axios.put(`${API}/tasks/${id}`, { ...task, title: newTitle })
+    .then(() => setTasks(
+      tasks.map(t => t.id === id ? { ...t, title: newTitle } : t)
+    ));
+};
+
+const updateTaskDate = (id: number, newDate: string) => {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+
+  axios.put(`${API}/tasks/${id}`, { ...task, date: newDate })
+    .then(() => setTasks(
+      tasks.map(t => t.id === id ? { ...t, date: newDate } : t)
+    ));
+};
+
+const addTask = (title: string, date: string, priority: "low" | "medium" | "high") => {
+  axios.post(`${API}/tasks`, { title, date, priority })
+    .then(res => {
+      const newTask = res.data;
+      setTasks([...tasks, newTask]);
+      setActiveTab(newTask.date === today ? 'today' : 'pending');
+      setShowAddModal(false);
+    });
+};
+
+  const getFilteredTasks = () => {
+    const sortedTasks = tasks.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const pendingTasks = sortedTasks.filter(t => !t.completed);
+    const completedTasks = sortedTasks.filter(t => t.completed);
+
+    let filtered: Task[] = [];
+
+    switch (activeTab) {
+      case "today":
+        filtered = pendingTasks.filter(t => t.date === today);
+        break;
+      case "pending":
+        filtered = pendingTasks.filter(t => t.date >= today);
+        break;
+      case "overdue":
+        filtered = pendingTasks.filter(t => t.date < today);
+        break;
+    }
+
+    const getTabCount = (tab: "today" | "pending" | "overdue") => {
+      if (tab === "today") return pendingTasks.filter(t => t.date === today).length;
+      if (tab === "pending") return pendingTasks.filter(t => t.date >= today).length;
+      if (tab === "overdue") return pendingTasks.filter(t => t.date < today).length;
+      return 0;
+    };
+
+    return { active: filtered, completed: completedTasks, getTabCount };
+  };
+
+  const { active: activeTasks, completed: completedTasks, getTabCount } = getFilteredTasks();
+
+  const AddTaskModal = () => {
+    const [title, setTitle] = useState("");
+    const [date, setDate] = useState(today);
+    const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (title.trim()) addTask(title.trim(), date, priority);
+    };
+
+    return (
+      <div className="modal-backdrop">
+        <form className="modal" onSubmit={handleSubmit}>
+          <h3>Add New Task</h3>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Task Title" required />
+          <input type="date" value={date} min={formatDate(new Date())} onChange={e => setDate(e.target.value)} required />
+          <select value={priority} onChange={e => setPriority(e.target.value as any)}>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <div className="modal-buttons">
+            <button type="button" onClick={() => setShowAddModal(false)}>Cancel</button>
+            <button type="submit">Save Task</button>
+          </div>
+        </form>
       </div>
+    );
+  };
 
-      {todos.length === 0 && <p>No tasks yet!</p>}
+  const TaskItem = ({ task }: { task: Task }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [newTitle, setNewTitle] = useState(task.title);
+    const [newDate, setNewDate] = useState(task.date);
 
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>
-            <span>{todo.task}</span>
-            <div className="actions">
-              <button className="edit" onClick={() => startEdit(todo)}>Edit</button>
-              <button className="delete" onClick={() => deleteTodo(todo.id)}>Delete</button>
-            </div>
-          </li>
-        ))}
-      </ul>
+    const handleSave = () => {
+      if (newTitle.trim() && newTitle.trim() !== task.title) updateTaskTitle(task.id, newTitle.trim());
+      if (newDate !== task.date) updateTaskDate(task.id, newDate);
+      setIsEditing(false);
+    };
+
+    return (
+      <li className={`task-item ${task.completed ? "completed" : ""}`}>
+        <input type="checkbox" checked={task.completed} onChange={() => toggleComplete(task.id)} />
+        <div className="task-content">
+          {isEditing ? (
+            <>
+              <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+              <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+            </>
+          ) : (
+            <>
+              <span onClick={() => !task.completed && setIsEditing(true)}>{task.title}</span>
+              <span className={`task-date ${task.date < today && !task.completed ? "overdue" : ""}`}>{task.date === today ? "Today" : task.date}</span>
+            </>
+          )}
+        </div>
+        <span className="priority-dot" style={{ backgroundColor: priorityColor[task.priority] }}></span>
+        <button onClick={() => isEditing ? handleSave() : setIsEditing(true)}>{isEditing ? "Save" : "Edit"}</button>
+        <button onClick={() => deleteTask(task.id)}>Delete</button>
+      </li>
+    );
+  };
+
+  return (
+    <div className="app-container">
+      <aside className="sidebar">
+        <h1>TaskHub</h1>
+        <p>Organize your Task</p>
+        <div className="tabs">
+          {["today", "pending", "overdue"].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={activeTab === tab ? "active-tab" : ""}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)} ({getTabCount(tab as any)})
+            </button>
+          ))}
+        </div>
+        <button className="new-task-btn" onClick={() => setShowAddModal(true)}>+ New Task</button>
+      </aside>
+
+      <main className="main">
+        <h2>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Tasks</h2>
+        <ul>
+          {activeTasks.length > 0 ? activeTasks.map(task => <TaskItem key={task.id} task={task} />)
+          : <p className="no-tasks">No tasks found for "{activeTab}"</p>}
+        </ul>
+
+        {completedTasks.length > 0 && (
+          <div className="completed-section">
+            <h3>Completed ({completedTasks.length})</h3>
+            <ul>
+              {completedTasks.map(task => <TaskItem key={task.id} task={task} />)}
+            </ul>
+          </div>
+        )}
+      </main>
+
+      {showAddModal && <AddTaskModal />}
     </div>
   );
 }
-
-export default App;
-
-
-
-
-
-
-
-
-
-
-
-// import './App.css'
-
-// interface Item {
-//   id: number;
-//   name: string;
-//   description: string;
-// }
-
-// function App() {
-//   const [items, setItems] = useState<Item[]>([
-//     { id: 1, name: "Apple", description: "A red fruit" },
-//     { id: 2, name: "Banana", description: "A yellow fruit" },
-//     { id: 3, name: "Carrot", description: "An orange vegetable" },
-//   ]);
-
-//   const [query, setQuery] = useState(""); 
-//   const [updates, setUpdates] = useState<{ [key: number]: string }>({}); 
-
-//   const handleUpdate = (id: number) => {
-//     setItems(items.map(item =>
-//       item.id === id
-//         ? { ...item, description: updates[id] || item.description }
-//         : item
-//     ));
-//     setUpdates({ ...updates, [id]: "" }); 
-//   };
-
-//   const filteredItems = items.filter(item =>
-//     item.name.toLowerCase().includes(query.toLowerCase())
-//   );
-
-//   return (
-//     <div style={{ padding: "20px", fontFamily: "Arial" }}>
-//       <h2>Midterm Exam | Search and Update item using array</h2>
-
-      
-//       <input
-//         type="text"
-//         placeholder="Search Item..."
-//         value={query}
-//         onChange={(e) => setQuery(e.target.value)}
-//       />
-
-    
-//       {filteredItems.map(item => (
-//         <div key={item.id} >
-//           <h3>{item.name}</h3>
-//           <p>{item.description}</p>
-
-//           <input
-//             type="text"
-//             placeholder="New description"
-//             value={updates[item.id] || ""}
-//             onChange={(e) =>
-//               setUpdates({ ...updates, [item.id]: e.target.value })
-//             }
-//           />
-
-//           <button onClick={() => handleUpdate(item.id)}>Update</button>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// }
-
-// export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
-// import './App.css'
-
-// function App() {
-//   const [count, setCount] = useState(0)
-
-//   return (
-//     <>
-//       <div>
-//         <a href="https://vite.dev" target="_blank">
-//           <img src={viteLogo} className="logo" alt="Vite logo" />
-//         </a>
-//         <a href="https://react.dev" target="_blank">
-//           <img src={reactLogo} className="logo react" alt="React logo" />
-//         </a>
-//       </div>
-//       <h1>Vite + React</h1>
-//       <div className="card">
-//         <button onClick={() => setCount((count) => count + 1)}>
-//           count is {count}
-//         </button>
-//         <p>
-//           Edit <code>src/App.tsx</code> and save to test HMR
-//         </p>
-//       </div>
-//       <p className="read-the-docs">
-//         Click on the Vite and React logos to learn more
-//       </p>
-//     </>
-//   )
-// }
-
-// export default App
-
-
-// import './App.css'
-// import React, { useState } from "react";
-
-// export default function SimpleBMICalculator() {
-//   const [weight, setWeight] = useState("");
-//   const [height, setHeight] = useState("");
-//   const [bmi, setBmi] = useState<string | null>(null);
-//   const [category, setCategory] = useState<string | null>(null);
-//   const [tip, setTip] = useState<string | null>(null);
-
-//   const calculateBMI = () => {
-//     const w = parseFloat(weight);
-//     const h = parseFloat(height);
-//     const bmiValue = w / (h * h);
-//     setBmi(bmiValue.toFixed(2));
-
-//     if (bmiValue < 18.5) {
-//       setCategory("Underweight");
-//       setTip("Tip: Consider a nutrient-rich diet to reach a healthy weight.");
-//     } else if (bmiValue < 25) {
-//       setCategory("Normal weight");
-//       setTip("Tip: Maintain your healthy lifestyle.");
-//     } else if (bmiValue < 30) {
-//       setCategory("Overweight");
-//       setTip("Tip: Try adding more physical activity and adjusting your diet.");
-//     } else {
-//       setCategory("Obese");
-//       setTip("Tip: Consult a healthcare provider for guidance.");
-//     }
-//   };
-
-//   const clearAll = () => {
-//     setWeight("");
-//     setHeight("");
-//     setBmi(null);
-//     setCategory(null);
-//     setTip(null);
-//   };
-
-//   return (
-//     <>
-//       <h2 >BMI Calculator</h2>
-//       <input
-//         type="number"
-//         placeholder="Enter Weight"
-//         value={weight}
-//         onChange={(e) => setWeight(e.target.value)}
-        
-//       />
-//       <br />
-//       <input
-//         type="number"
-//         placeholder="Enter Height"
-//         value={height}
-//         onChange={(e) => setHeight(e.target.value)}
-        
-//       />
-//       <br />
-//       <br />
-//       <button onClick={calculateBMI} >Calculate BMI</button>
-//       <br />
-//       <br />
-//       <button onClick={clearAll} >Clear</button>
-//       <br />
-//       {bmi && category && (
-//         <>
-//           Your BMI: <strong>{bmi}</strong><br /> ({category})<br />
-//           {tip}
-//         </>
-//       )}
-//     </>
-//   );
-// }
-
-
-
-
-// import React, { useState } from "react";
-// import "./App.css";
-
-// // Custom types
-// type UserType = "Admin" | "Guest";
-// type Operation = "add" | "subtract" | "multiply" | "divide";
-
-// // Function types
-// type CalculateTotalFn = (nums: string[], op: Operation) => void;
-// type NumberChangeFn = (index: number, value: string) => void;
-// type OperationChangeFn = (op: Operation) => void;
-
-// // Interface for App state
-// interface AppState {
-//   userType: UserType;
-//   loggedIn: boolean;
-//   userName: string;
-//   numbers: string[];
-//   total: number | null;
-//   operation: Operation;
-// }
-
-// function App() {
-//   // State using interface (for demonstration, not strictly necessary in hooks)
-//   const [userType, setUserType] = useState<AppState["userType"]>("Admin");
-//   const [loggedIn, setLoggedIn] = useState<AppState["loggedIn"]>(false);
-//   const [userName, setUserName] = useState<AppState["userName"]>("");
-//   const [numbers, setNumbers] = useState<AppState["numbers"]>(["", "", ""]);
-//   const [total, setTotal] = useState<AppState["total"]>(null);
-//   const [operation, setOperation] = useState<AppState["operation"]>("add");
-
-//   // Function implementations
-//   const handleLogin: () => void = () => {
-//     if (userName === "") {
-//       alert("Please enter your name.");
-//       return;
-//     }
-//     setLoggedIn(true);
-//     setNumbers(["", "", ""]);
-//     setTotal(null);
-//   };
-
-//   const handleLogout: () => void = () => {
-//     setLoggedIn(false);
-//     setUserName("");
-//     setNumbers(["", "", ""]);
-//     setTotal(null);
-//     setOperation("add");
-//   };
-
-//   const handleNumberChange: NumberChangeFn = (index, value) => {
-//     const newNumbers = [...numbers];
-//     newNumbers[index] = value;
-//     setNumbers(newNumbers);
-//     calculateTotal(newNumbers, operation);
-//   };
-
-//   const handleOperationChange: OperationChangeFn = (op) => {
-//     setOperation(op);
-//     calculateTotal(numbers, op);
-//   };
-
-//   const calculateTotal: CalculateTotalFn = (nums, op) => {
-//     // Assertion: nums is string[]
-//     const validNumbers = nums
-//       .map((num) => parseFloat(num))
-//       .filter((num) => !isNaN(num));
-//     let result: number | null = null;
-//     if (validNumbers.length > 0) {
-//       if (op === "add") {
-//         result = validNumbers.reduce((a, b) => a + b, 0);
-//       } else if (op === "subtract") {
-//         result = validNumbers.reduce((a, b) => a - b);
-//       } else if (op === "multiply") {
-//         result = validNumbers.reduce((a, b) => a * b, 1);
-//       } else if (op === "divide") {
-//         result = validNumbers.reduce((a, b) => a / b);
-//       }
-//     }
-//     setTotal(result);
-//   };
-
-//   return (
-//     <>
-//       <h1>Calculator Login</h1>
-//       {!loggedIn ? (
-//         <>
-//           <label></label>
-//           <input
-//             type="text"
-//             value={userName}
-//             onChange={(e) => setUserName(e.target.value)}
-//             placeholder=""
-//           />
-//           <br />
-//           <select
-//             value={userType}
-//             onChange={(e) => setUserType(e.target.value as UserType)}
-
-//           > <option value="Guest">Guest</option>
-//             <option value="Admin">Admin</option>
-            
-//           </select>
-//           <br />
-//           <button onClick={handleLogin}>Login</button>
-//         </>
-//       ) : (
-//         <>
-//           <p>
-//             Welcome {userName} ({userType})
-//           </p>
-//           {userType === "Admin" ? (
-//             <>
-            
-                
-              
-//               <br />
-//               <label>Num 1: </label>
-//               <input
-//                 type="number"
-//                 value={numbers[0]}
-//                 onChange={(e) => handleNumberChange(0, e.target.value)}
-//               />
-//               <br />
-//               <label>Num 2: </label>
-//               <input
-//                 type="number"
-//                 value={numbers[1]}
-//                 onChange={(e) => handleNumberChange(1, e.target.value)}
-//               />
-//               <br />
-//               <button
-//                   type="button"
-//                   onClick={() => handleOperationChange("add")}
-//                 >
-//                   Addition
-//                 </button>
-//                 <button
-//                   type="button"
-//                   onClick={() => handleOperationChange("subtract")}
-//                 >
-//                   Subtraction
-//                 </button>
-//                 <button
-//                   type="button"
-//                   onClick={() => handleOperationChange("multiply")}
-//                 >
-//                   Multiplication
-//                 </button>
-//                 <button
-//                   type="button"
-//                   onClick={() => handleOperationChange("divide")}
-//                 >
-//                   Division
-//                 </button>
-//                 <br />
-//               <h2>Total: {total !== null ? total : ""}</h2>
-             
-             
-              
-//               <button onClick={handleLogout}>Logout</button>
-//             </>
-            
-//           ) : (
-//             <>
-//               <p>Guests cannot use the calculator.</p>
-              
-//               <button onClick={handleLogout}>Logout</button>
-//             </>
-//           )}
-//         </>
-//       )}
-//     </>
-//   );
-// }
-// export default App;
-
-
-
