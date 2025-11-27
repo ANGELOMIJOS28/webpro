@@ -1,41 +1,50 @@
-const express = require('express');
-const mysql = require('mysql2');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// RAILWAY MYSQL CONNECTION
+// ===== RAILWAY MYSQL PUBLIC CONNECTION =====
 const db = mysql.createConnection({
-    host: "shinkansen.proxy.rlwy.net",
-    user: "root",
-    password: "gsPCpwSsuhbbrrmubThRQxXjHSHmAVLz",
-    port: 39375,
-    database: "railway"
+  host: "turntable.proxy.rlwy.net",
+  user: "root",
+  password: "kpwhqROQZZWgDnTPfIqnVtVAoJHEuuka",
+  port: 49815,
+  database: "railway"
 });
 
+// Connect to DB
 db.connect(err => {
-    if (err) {
-        console.error("❌ Database connection failed:", err);
-        return;
-    }
-    console.log("✅ Connected to Railway MySQL!");
+  if (err) {
+    console.error("❌ Database connection failed:", err);
+    return;
+  }
+  console.log("✅ Connected to Railway MySQL!");
+
+  // Ensure 'todos' table exists
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS todos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      task TEXT NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending'
+    )
+  `;
+  db.query(createTableQuery, (err) => {
+    if (err) console.error("❌ Failed to create 'todos' table:", err);
+    else console.log("✅ 'todos' table is ready");
+  });
 });
 
-// EXAMPLE ROUTE
+// ===== ROUTES =====
+
+// Test server
 app.get("/", (req, res) => {
-    res.send("Server Running!");
+  res.send("Server Running!");
 });
-
-app.listen(10000, () => {
-    console.log("Server running on port 10000");
-});
-
-
-
-// ===== CRUD ROUTES =====
 
 // GET all todos
 app.get("/todos", (req, res) => {
@@ -48,13 +57,15 @@ app.get("/todos", (req, res) => {
 // ADD todo
 app.post("/todos", (req, res) => {
   const { title, task } = req.body;
-  const status = "pending";
+  if (!title || !task) return res.status(400).json({ error: "Title and task are required" });
 
+  const status = "pending";
   db.query(
     "INSERT INTO todos (title, task, status) VALUES (?, ?, ?)",
     [title, task, status],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
+      console.log("Inserted todo ID:", result.insertId);
       res.json({ id: result.insertId, title, task, status });
     }
   );
@@ -84,6 +95,8 @@ app.delete("/todos/:id", (req, res) => {
   });
 });
 
-// // Start server
-// const PORT = process.env.PORT || 10000;
-// app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ===== START SERVER =====
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
