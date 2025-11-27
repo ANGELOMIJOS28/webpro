@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 // Backend URL
-const API_URL = "https://backend-5-5sg4.onrender.com";
+const API_URL = "https://backend-5-5sg4.onrender.com/todos";
 
 interface Todo {
   id: number;
@@ -27,14 +27,13 @@ function App() {
     }
   };
 
-  // Add or Update Todo – Optimistic UI
+  // Add or Update Todo
   const addTodo = async () => {
     if (!task.trim()) return;
+    const value = task;
 
-    const value = task; // store real task value before clearing
-
-    if (editId) {
-      // ---------- INSTANT UPDATE ----------
+    if (editId !== null) {
+      // ---------- UPDATE ----------
       setTodos((prev) =>
         prev.map((todo) =>
           todo.id === editId ? { ...todo, task: value, title: value } : todo
@@ -44,7 +43,6 @@ function App() {
       setTask("");
       setEditId(null);
 
-      // ---------- SYNC TO BACKEND ----------
       try {
         await axios.put(`${API_URL}/${editId}`, {
           title: value,
@@ -59,30 +57,27 @@ function App() {
       return;
     }
 
-    // ---------- ADD MODE ----------
+    // ---------- ADD ----------
     const tempTodo: Todo = {
-      id: Date.now(), // temporary ID for instant UI
+      id: Date.now(), // temporary ID
       title: value,
       task: value,
       status: "pending",
     };
 
-    // Optimistic UI: show immediately
     setTodos((prev) => [...prev, tempTodo]);
     setTask("");
 
-    // Sync with backend
     try {
       await axios.post(API_URL, { title: value, task: value });
-      loadTodos(); // refresh real data
+      loadTodos();
     } catch (err) {
       console.error("Error adding todo:", err);
     }
   };
 
-  // Delete Todo – Optimistic
+  // Delete Todo
   const deleteTodo = async (id: number) => {
-    // Instant UI delete
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
 
     try {
@@ -93,7 +88,7 @@ function App() {
     }
   };
 
-  // Start Editing
+  // Start editing
   const startEdit = (todo: Todo) => {
     setTask(todo.task);
     setEditId(todo.id);
@@ -115,7 +110,7 @@ function App() {
           onChange={(e) => setTask(e.target.value)}
         />
         <button onClick={addTodo} disabled={!task.trim()}>
-          {editId ? "Update" : "Add"}
+          {editId !== null ? "Update" : "Add"}
         </button>
       </div>
 
@@ -141,6 +136,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
