@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 // Correct Backend URL
-const API_URL = " https://mijos-finals.onrender.com";
+const API_URL = "https://mijos-finals.onrender.com";
 
 interface Todo {
   id: number;
