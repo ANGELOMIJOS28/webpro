@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-// Correct Backend URL
-const API_URL="https://backend1-14-jfgh.onrender.com";
+// Correct Backend Base URL
+const API_URL = "https://backend1-14-jfgh.onrender.com/todos";
 
 interface Todo {
   id: number;
@@ -33,30 +33,25 @@ function App() {
 
     if (editId) {
       // UPDATE
-      const updatedTodo = { id: editId, title: task, task, status: "pending" };
-
-      // Optimistic UI update
-      setTodos((prev) => prev.map((t) => (t.id === editId ? updatedTodo : t)));
-
       axios
-        .put(`${API_URL}/${editId}`, updatedTodo)
+        .put(`${API_URL}/${editId}`, {
+          title: task,
+          task,
+          status: "pending",
+        })
+        .then(() => loadTodos())
         .catch(console.error);
 
       setEditId(null);
     } else {
       // ADD
-      const tempId = Date.now();
-      const newTodo = { id: tempId, title: task, task, status: "pending" };
-
-      setTodos((prev) => [...prev, newTodo]);
-
       axios
-        .post(API_URL, { title: task, task, status: "pending" })
-        .then((res) => {
-          setTodos((prev) =>
-            prev.map((t) => (t.id === tempId ? res.data : t))
-          );
+        .post(API_URL, {
+          title: task,
+          task,
+          status: "pending",
         })
+        .then(() => loadTodos())
         .catch(console.error);
     }
 
@@ -65,8 +60,10 @@ function App() {
 
   // Delete todo
   const deleteTodo = (id: number) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-    axios.delete(`${API_URL}/${id}`).catch(console.error);
+    axios
+      .delete(`${API_URL}/${id}`)
+      .then(() => loadTodos())
+      .catch(console.error);
   };
 
   // Start edit
@@ -102,10 +99,7 @@ function App() {
           <li key={todo.id} className="todo-item">
             <span>{todo.task}</span>
             <div className="actions">
-              <button
-                className="neon-btn edit"
-                onClick={() => startEdit(todo)}
-              >
+              <button className="neon-btn edit" onClick={() => startEdit(todo)}>
                 Edit
               </button>
               <button
