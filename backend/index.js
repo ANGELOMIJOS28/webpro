@@ -8,14 +8,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// DATABASE CONNECTION
 const pool = new Pool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 5432
+    port: process.env.DB_PORT,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
+
 
 pool.connect()
     .then(() => console.log("Connected to PostgreSQL"))
@@ -69,7 +72,7 @@ app.delete('/tasks/:id', async (req, res) => {
 });
 
 // START SERVER
-const port = process.env.PORT || 8081;
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
