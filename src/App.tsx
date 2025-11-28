@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-// Backend Base URL (CORRECT)
-const API_URL = "https://backend1-14-jfgh.onrender.com/todos";
+// Correct Backend URL
+const API_URL = " https://mijos-finals.onrender.com";
 
 interface Todo {
   id: number;
@@ -17,7 +17,7 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // Load all todos
+  // Load todos
   const loadTodos = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -27,46 +27,49 @@ function App() {
     }
   };
 
-  // Add or update
-  const addTodo = async () => {
+  // Add or update todo
+  const addTodo = () => {
     if (!task.trim()) return;
 
-    try {
-      if (editId) {
-        // UPDATE
-        await axios.put(`${API_URL}/${editId}`, {
-          title: task,
-          task,
-          status: "pending",
-        });
-        setEditId(null);
-      } else {
-        // ADD
-        await axios.post(API_URL, {
-          title: task,
-          task,
-          status: "pending",
-        });
-      }
+    if (editId) {
+      // UPDATE
+      const updatedTodo = { id: editId, title: task, task, status: "pending" };
 
-      setTask("");
-      loadTodos(); // Refresh list
-    } catch (err) {
-      console.error("Error adding/updating todo:", err);
+      // Optimistic UI update
+      setTodos((prev) => prev.map((t) => (t.id === editId ? updatedTodo : t)));
+
+      axios
+        .put(`${API_URL}/${editId}`, updatedTodo)
+        .catch(console.error);
+
+      setEditId(null);
+    } else {
+      // ADD
+      const tempId = Date.now();
+      const newTodo = { id: tempId, title: task, task, status: "pending" };
+
+      setTodos((prev) => [...prev, newTodo]);
+
+      axios
+        .post(API_URL, { title: task, task, status: "pending" })
+        .then((res) => {
+          setTodos((prev) =>
+            prev.map((t) => (t.id === tempId ? res.data : t))
+          );
+        })
+        .catch(console.error);
     }
+
+    setTask("");
   };
 
-  // Delete
-  const deleteTodo = async (id: number) => {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-      loadTodos();
-    } catch (err) {
-      console.error("Error deleting todo:", err);
-    }
+  // Delete todo
+  const deleteTodo = (id: number) => {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
+    axios.delete(`${API_URL}/${id}`).catch(console.error);
   };
 
-  // Start editing
+  // Start edit
   const startEdit = (todo: Todo) => {
     setTask(todo.task);
     setEditId(todo.id);
@@ -99,7 +102,10 @@ function App() {
           <li key={todo.id} className="todo-item">
             <span>{todo.task}</span>
             <div className="actions">
-              <button className="neon-btn edit" onClick={() => startEdit(todo)}>
+              <button
+                className="neon-btn edit"
+                onClick={() => startEdit(todo)}
+              >
                 Edit
               </button>
               <button
@@ -117,4 +123,3 @@ function App() {
 }
 
 export default App;
-

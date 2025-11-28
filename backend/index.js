@@ -4,77 +4,102 @@ const cors = require("cors");
 const mysql = require("mysql2/promise");
 
 const app = express();
-app.use(cors({ origin: "*", credentials: true }));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// -------------------
-//  MYSQL CONNECTION
-// -------------------
+// -----------------------
+// MYSQL CONNECTION POOL
+// -----------------------
 let db;
 
 async function connectDB() {
-  db = await mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT),
-    waitForConnections: true,
-    connectionLimit: 10
-  });
+  try {
+    db = await mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+      port: Number(process.env.DB_PORT),
+      waitForConnections: true,
+      connectionLimit: 10,
+      ssl: { rejectUnauthorized: false }
+    });
 
-  console.log("MySQL connected successfully!");
+    console.log("Connected to Railway MySQL!");
+  } catch (error) {
+    console.error("Database connection error:", error);
+  }
 }
 
 connectDB();
 
-// -------------------
-//  CRUD ROUTES
-// -------------------
+// -----------------------
+// ROUTES
+// -----------------------
 
 // GET ALL TODOS
 app.get("/todos", async (req, res) => {
-  const [rows] = await db.query("SELECT * FROM todos");
-  res.json(rows);
+  try {
+    const [rows] = await db.query("SELECT * FROM todos");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
 });
 
 // ADD TODO
 app.post("/todos", async (req, res) => {
-  const { title, task, status } = req.body;
+  try {
+    const { title, task, status } = req.body;
 
-  const [result] = await db.query(
-    "INSERT INTO todos (title, task, status) VALUES (?, ?, ?)",
-    [title, task, status || "pending"]
-  );
+    const [result] = await db.query(
+      "INSERT INTO todos (title, task, status) VALUES (?, ?, ?)",
+      [title, task, status || "pending"]
+    );
 
-  res.json({ id: result.insertId, title, task, status });
+    res.json({
+      id: result.insertId,
+      title,
+      task,
+      status: status || "pending",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
 });
 
 // UPDATE TODO
 app.put("/todos/:id", async (req, res) => {
-  const { id } = req.params;
-  const { title, task, status } = req.body;
+  try {
+    const { title, task, status } = req.body;
+    const { id } = req.params;
 
-  await db.query(
-    "UPDATE todos SET title = ?, task = ?, status = ? WHERE id = ?",
-    [title, task, status, id]
-  );
+    await db.query(
+      "UPDATE todos SET title=?, task=?, status=? WHERE id=?",
+      [title, task, status, id]
+    );
 
-  res.json({ message: "Updated successfully" });
+    res.json({ message: "Updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
 });
 
 // DELETE TODO
 app.delete("/todos/:id", async (req, res) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  await db.query("DELETE FROM todos WHERE id = ?", [id]);
-
-  res.json({ message: "Deleted successfully" });
+    await db.query("DELETE FROM todos WHERE id=?", [id]);
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
 });
 
-// -------------------
-//  START SERVER (ONLINE ONLY)
-// -------------------
-app.listen(process.env.PORT, () =>
+// -----------------------
+// SERVER
+// -----------------------
+app.listen(process.env.PORT || 4000, () =>
   console.log(`Server running on port ${process.env.PORT}`)
 );
