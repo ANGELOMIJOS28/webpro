@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-// Correct Backend Base URL
+// Backend Base URL (CORRECT)
 const API_URL = "https://backend1-14-jfgh.onrender.com/todos";
 
 interface Todo {
@@ -17,7 +17,7 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
 
-  // Load todos
+  // Load all todos
   const loadTodos = async () => {
     try {
       const res = await axios.get(API_URL);
@@ -27,46 +27,46 @@ function App() {
     }
   };
 
-  // Add or update todo
-  const addTodo = () => {
+  // Add or update
+  const addTodo = async () => {
     if (!task.trim()) return;
 
-    if (editId) {
-      // UPDATE
-      axios
-        .put(`${API_URL}/${editId}`, {
+    try {
+      if (editId) {
+        // UPDATE
+        await axios.put(`${API_URL}/${editId}`, {
           title: task,
           task,
           status: "pending",
-        })
-        .then(() => loadTodos())
-        .catch(console.error);
+        });
+        setEditId(null);
+      } else {
+        // ADD
+        await axios.post(API_URL, {
+          title: task,
+          task,
+          status: "pending",
+        });
+      }
 
-      setEditId(null);
-    } else {
-      // ADD
-      axios
-        .post(API_URL, {
-          title: task,
-          task,
-          status: "pending",
-        })
-        .then(() => loadTodos())
-        .catch(console.error);
+      setTask("");
+      loadTodos(); // Refresh list
+    } catch (err) {
+      console.error("Error adding/updating todo:", err);
     }
-
-    setTask("");
   };
 
-  // Delete todo
-  const deleteTodo = (id: number) => {
-    axios
-      .delete(`${API_URL}/${id}`)
-      .then(() => loadTodos())
-      .catch(console.error);
+  // Delete
+  const deleteTodo = async (id: number) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      loadTodos();
+    } catch (err) {
+      console.error("Error deleting todo:", err);
+    }
   };
 
-  // Start edit
+  // Start editing
   const startEdit = (todo: Todo) => {
     setTask(todo.task);
     setEditId(todo.id);
@@ -117,3 +117,4 @@ function App() {
 }
 
 export default App;
+
